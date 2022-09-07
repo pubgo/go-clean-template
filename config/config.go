@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/spf13/viper"
 )
 
 type (
@@ -45,6 +47,39 @@ type (
 		URL            string `env-required:"true"                            env:"RMQ_URL"`
 	}
 )
+
+const (
+	defaultEnvPrefix  = "demo"
+	defaultConfigName = "config"
+	defaultConfigType = "yaml"
+	defaultConfigPath = "./configs"
+)
+
+func Load() (Config, error) {
+	cfg := Config{}
+
+	// ENV will take precedence over config file.
+
+	replacer := strings.NewReplacer(".", "_", "-", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.SetEnvPrefix(defaultEnvPrefix)
+	viper.AutomaticEnv()
+
+	viper.SetConfigName(defaultConfigName)
+	viper.SetConfigType(defaultConfigType)
+	viper.AddConfigPath(defaultConfigPath)
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; ignore error if desired
+		} else {
+			return cfg, err
+		}
+	}
+
+	err := viper.Unmarshal(&cfg)
+	return cfg, err
+}
 
 // NewConfig returns app config.
 func NewConfig() (*Config, error) {
